@@ -89,7 +89,7 @@ class tdotme
     public function getTitle()
     {
         preg_match('#meta property="og:title" content="(.+)"#', $this->html, $rr);
-        return htmlspecialchars_decode($rr[1]);
+        return htmlspecialchars_decode($rr[1], ENT_COMPAT | ENT_HTML401 | ENT_QUOTES);
     }
 
     public function getAbout()
@@ -98,14 +98,14 @@ class tdotme
         if (empty($rr[1])) {
             $rr[1] = "";
         }
-        return htmlspecialchars_decode($rr[1]);
+        return htmlspecialchars_decode($rr[1], ENT_COMPAT | ENT_HTML401 | ENT_QUOTES);
     }
 
     public function getImage()
     {
         preg_match('#meta property="og:image" content="(.+)"#', $this->html, $rr);
         if (isset($rr[1])) {
-            return htmlspecialchars_decode($rr[1]);
+            return htmlspecialchars_decode($rr[1], ENT_COMPAT | ENT_HTML401 | ENT_QUOTES);
         } else {
             return null;
         }
