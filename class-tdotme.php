@@ -57,7 +57,7 @@ class tdotme
             ["bing", "bold", "cap", "coub", "gif", "imdb", "like", "pic", "vid", "vote", "wiki", "ya"])) {
             return $username;
         }
-        if (preg_match("#([\w\d_]{5,32})$#", "$username", $res)) {
+        if (preg_match("#([\w\d_]{5,32})$#", $username, $res)) {
             return $res[1];
         } else {
             return false;
