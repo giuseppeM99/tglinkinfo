@@ -215,6 +215,24 @@ class tdotme
         return $this->porn;
     }
 
+    static function isBot(int $id): bool
+    {
+        $c = curl_init();
+        curl_setopt_array($c, array(
+            CURLOPT_URL            => 'https://oauth.telegram.org/auth/get?bot_id=' . $id . '&lang=en',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => 'origin=1'
+        ));
+        $r = curl_exec($c);
+        curl_close($c);
+
+        if ($r === 'Bot domain invalid') {
+            return true;
+        }
+        return false;
+    }
+
     public function __destruct()
     {
         unset($this->html);
