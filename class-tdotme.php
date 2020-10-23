@@ -38,7 +38,7 @@ class tdotme
         } else {
             throw new \Error("INVALID URL $url");
         }
-        if (preg_match("#joinchat/([\w-+]+)#i", $this->url, $res)) {
+        if (preg_match("#joinchat/([\w+-]+)#i", $this->url, $res)) {
             $this->invite = $res[1];
         } elseif (preg_match("#me/([\w\d_]{5,32})#i", $this->url, $res)) {
             $this->username = $res[1];
@@ -57,7 +57,7 @@ class tdotme
             ["bing", "bold", "cap", "coub", "gif", "imdb", "like", "pic", "vid", "vote", "wiki", "ya"])) {
             return $username;
         }
-        if (preg_match("#@([\w\d_]{5,32})$#", "@$username", $res)) {
+        if (preg_match("#([\w\d_]{5,32})$#", "$username", $res)) {
             return $res[1];
         } else {
             return false;
@@ -243,6 +243,36 @@ class tdotme
             return true;
         }
         return false;
+    }
+
+    public function getDc(): int
+    {
+        $c = curl_init();
+        curl_setopt_array($c, [
+            CURLOPT_URL            => 'https://t.me/i/userpic/320/' . $this->username . '.jpg',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HEADER         => true,
+        ]);
+        $r = curl_exec($c);
+        curl_close($c);
+
+        $headers = [];
+        $data = explode("\n", $r);
+        $headers['status'] = $data[0];
+        array_shift($data);
+
+        foreach ($data as $part) {
+            $middle = explode(": ", $part);
+            if (isset($middle[1])) {
+                $headers[trim($middle[0])] = trim($middle[1]);
+            }
+        }
+
+        if (stripos($headers['status'], '302')) {
+            return substr(explode('.telesco.pe', $headers['Location'], 2)[0], 11);
+        }
+        // 0 = DC not resolved
+        return 0;
     }
 
     public function __destruct()
