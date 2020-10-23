@@ -2,24 +2,28 @@
 
 class tdotme
 {
-    private $html;
-    private $url;
-    private $invite;
-    private $username;
-    private $porn = NULL;
-    private static $curl = NULL;
+    private        $html;
+    private string $url;
+    private        $invite;
+    private string $username;
+    private        $porn = null;
+    private static $curl = null;
+
     private static function getCurl()
     {
-        if (self::$curl === NULL)
+        if (self::$curl === null) {
             self::$curl = curl_init();
+        }
         return self::$curl;
     }
 
     private static function fgc($url)
     {
         $ch = self::getCurl();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $url,
+            CURLOPT_RETURNTRANSFER => true
+        ]);
         return curl_exec($ch);
     }
 
@@ -28,13 +32,13 @@ class tdotme
         $username = self::isValidUsername($url);
         if ($username) {
             $this->username = $username;
-            $this->url = "https://t.me/".$this->username;
-        } elseif (preg_match("#t(?:elegram|lgrm)?\.(?:me|dog)#i",$url)) {
-            $this->url = (strpos($url, 'http') === 0) ? $url : 'https://'.$url;
+            $this->url = "https://t.me/" . $this->username;
+        } elseif (preg_match("#t(?:elegram|lgrm)?\.(?:me|dog)#i", $url)) {
+            $this->url = (strpos($url, 'http') === 0) ? $url : 'https://' . $url;
         } else {
-          throw new \Error("INVALID URL $url");
+            throw new \Error("INVALID URL $url");
         }
-        if (preg_match("#joinchat/([\w-\+]+)#i", $this->url, $res)) {
+        if (preg_match("#joinchat/([\w-+]+)#i", $this->url, $res)) {
             $this->invite = $res[1];
         } elseif (preg_match("#me/([\w\d_]{5,32})#i", $this->url, $res)) {
             $this->username = $res[1];
@@ -46,14 +50,14 @@ class tdotme
         return $this;
     }
 
-    public static function isValidUsername($username)
+    public static function isValidUsername(string $username)
     {
-
-        $username = str_replace('@','',$username);
-        if(in_array(strtolower($username), ["bing", "bold", "cap", "coub", "gif", "imdb", "like", "pic", "vid", "vote", "wiki", "ya"])) {
+        $username = str_replace('@', '', $username);
+        if (in_array(strtolower($username),
+            ["bing", "bold", "cap", "coub", "gif", "imdb", "like", "pic", "vid", "vote", "wiki", "ya"])) {
             return $username;
         }
-        if(preg_match("#@([\w\d_]{5,32})$#", "@$username", $res)) {
+        if (preg_match("#@([\w\d_]{5,32})$#", "@$username", $res)) {
             return $res[1];
         } else {
             return false;
@@ -81,9 +85,11 @@ class tdotme
 
     public function getMembers()
     {
-        if($this->isUser() || ! preg_match('#"tgme_page_extra">([\d\s]+) members#i', $this->html, $rr)) return 0;
+        if ($this->isUser() || !preg_match('#"tgme_page_extra">([\d\s]+) members#i', $this->html, $rr)) {
+            return 0;
+        }
         $members = $rr[1];
-        return intval(str_replace(' ', '',$members));
+        return intval(str_replace(' ', '', $members));
     }
 
     public function getTitle()
@@ -111,18 +117,20 @@ class tdotme
         }
     }
 
-    public function isValid()
+    public function isValid(): bool
     {
         if (empty($this->getAbout()) && $this->getImage() == "https://telegram.org/img/t_logo.png") {
-            if(!empty($this->invite) && $this->getTitle() === "Join group chat on Telegram")
+            if (!empty($this->invite) && $this->getTitle() === "Join group chat on Telegram") {
                 return false;
-            if(!empty($this->username) && $this->getTitle() !== "Telegram: Contact @".$this->username && !$this->isPornBlocked())
+            }
+            if (!empty($this->username) && $this->getTitle() !== "Telegram: Contact @" . $this->username && !$this->isPornBlocked()) {
                 return false;
+            }
         }
         return true;
     }
 
-    public function getCreator()
+    public function getCreator(): int
     {
         if (empty($this->invite) || strpos($this->invite, "AAAA") === 0) {
             return 0;
@@ -132,9 +140,10 @@ class tdotme
         return $chat_id;
     }
 
-    public function isChannel()
+    public function isChannel(): bool
     {
-        if (!empty($this->username) && stripos($this->html, "href=\"tg://resolve?domain=".$this->username."\">view channel") > 2500) {
+        if (!empty($this->username) && stripos($this->html,
+                "href=\"tg://resolve?domain=" . $this->username . "\">view channel") > 2500) {
             return true;
         }
         if (empty($this->invite) || !(strpos($this->invite, "AAAA") === 0)) {
@@ -146,31 +155,34 @@ class tdotme
         return true;
     }
 
-    public function isGroup()
+    public function isGroup(): bool
     {
         if (empty($this->invite) || $this->isChannel() || !$this->isValid()) {
             return false;
         }
-        if (strpos($this->html, "href=\"tg://join?invite=".$this->invite."\">Join Channel") > 2500) {
+        if (strpos($this->html, "href=\"tg://join?invite=" . $this->invite . "\">Join Channel") > 2500) {
             return true;
         }
         return false;
     }
 
-    public function isSuperGroup()
+    public function isSuperGroup(): bool
     {
-        if ($this->isValid() && !empty($this->username) && stripos($this->html, "href=\"tg://resolve?domain=".$this->username."\">view group") > 2500) {
+        if ($this->isValid() && !empty($this->username) && stripos($this->html,
+                "href=\"tg://resolve?domain=" . $this->username . "\">view group") > 2500) {
             return true;
         }
-        if ($this->isValid() && strpos($this->html, "href=\"tg://join?invite=".$this->invite."\">Join Group") > 2500) {
+        if ($this->isValid() && strpos($this->html,
+                "href=\"tg://join?invite=" . $this->invite . "\">Join Group") > 2500) {
             return true;
         }
         return false;
     }
 
-    public function isUser()
+    public function isUser(): bool
     {
-        if ($this->isValid() && !$this->isPornBlocked() && !empty($this->username) && stripos($this->html, "href=\"tg://resolve?domain=".$this->username."\">send message") > 2500) {
+        if ($this->isValid() && !$this->isPornBlocked() && !empty($this->username) && stripos($this->html,
+                "href=\"tg://resolve?domain=" . $this->username . "\">send message") > 2500) {
             return true;
         }
         return false;
@@ -181,7 +193,7 @@ class tdotme
         return $this->username;
     }
 
-    public function getChatID()
+    public function getChatID(): int
     {
         if (empty($this->invite)) {
             return 0;
@@ -193,26 +205,44 @@ class tdotme
         } elseif ($this->isSuperGroup() || $this->isChannel()) {
             $chat_id = "-100$chat_id";
         }
-        $chat_id = $chat_id *1;
-        return $chat_id;
+        return (int)$chat_id;
     }
 
-    public function isPornBlocked()
+    public function isPornBlocked(): bool
     {
-        if($this->porn !== NULL)
+        if ($this->porn !== null) {
             return $this->porn;
+        }
         $dom = new DOMDocument();
-        @$dom->loadHTML(self::fgc($this->url."/1?embed=1"));
+        @$dom->loadHTML(self::fgc($this->url . "/1?embed=1"));
         $node = $dom->getElementById("widget_message");
         $text = "";
-        if ($node)
-        $text = trim($node->nodeValue);
-        if ($text === "This channel is blocked because it was used to spread pornographic content.") {
-            $this->porn = true;
-        } else {
-            $this->porn = false;
+        if ($node) {
+            $text = trim($node->nodeValue);
         }
-        return $this->porn;
+        if ($text === "This channel is blocked because it was used to spread pornographic content.") {
+            return $this->porn = true;
+        } else {
+            return $this->porn = false;
+        }
+    }
+
+    static function isBot(int $id): bool
+    {
+        $c = curl_init();
+        curl_setopt_array($c, array(
+            CURLOPT_URL            => 'https://oauth.telegram.org/auth/get?bot_id=' . $id . '&lang=en',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => 'origin=1'
+        ));
+        $r = curl_exec($c);
+        curl_close($c);
+
+        if ($r === 'Bot domain invalid') {
+            return true;
+        }
+        return false;
     }
 
     public function __destruct()
